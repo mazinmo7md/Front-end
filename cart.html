@@ -1,0 +1,238 @@
+{% extends "base.html" %} {% block content %}
+<style>
+  .cart-count {
+    font-weight: bold;
+    color: #444;
+    margin-bottom: 15px;
+    background: #f5f5f5;
+    padding: 6px 12px;
+    border-radius: 8px;
+    display: inline-block;
+  }
+
+  /* نخلي الجدول يلف يمين-شمال على الموبايل */
+  .cart-table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-bottom: 20px;
+  }
+
+  .cart-table {
+    width: 100%;
+    min-width: 700px; /* علشان يبان scroll على الشاشات الصغيرة */
+    border-collapse: collapse;
+  }
+
+  .cart-table th,
+  .cart-table td {
+    padding: 12px;
+    text-align: center;
+    border-bottom: 1px solid #ddd;
+    white-space: nowrap;
+  }
+
+  .product-cell {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .cart-img {
+    width: 60px;
+    height: 60px;
+    object-fit: cover;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+  }
+
+  .product-name {
+    font-weight: bold;
+    color: var(--gold);
+  }
+
+  .qty-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    justify-content: center;
+  }
+
+  .qty-btn {
+    background: var(--gold);
+    color: #fff;
+    border: none;
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 16px;
+  }
+
+  .qty-btn:hover {
+    background: #c79b4b;
+  }
+
+  .qty {
+    font-weight: bold;
+    min-width: 20px;
+    display: inline-block;
+    text-align: center;
+  }
+
+  .remove-btn {
+    color: red;
+    text-decoration: none;
+    font-weight: bold;
+  }
+
+  .remove-btn:hover {
+    text-decoration: underline;
+  }
+
+  .wishlist-btn {
+    color: #ff0000;
+    text-decoration: none;
+    font-size: 20px;
+    display: inline-block;
+    margin-top: 5px;
+  }
+
+  .wishlist-btn:hover {
+    color: #ff0000;
+  }
+
+  .total {
+    font-size: 18px;
+    font-weight: bold;
+    margin-top: 15px;
+  }
+
+  td,
+  th {
+    color: var(--gold);
+  }
+
+  .checkout-btn {
+    background: var(--gold);
+    padding: 10px 18px;
+    border-radius: 8px;
+    display: inline-block;
+    color: #fff;
+    font-weight: bold;
+    text-decoration: none;
+  }
+
+  .checkout-btn:hover {
+    background: #c79b4b;
+  }
+</style>
+
+<h2>سلة المشتريات</h2>
+<p class="cart-count">عدد المنتجات: {{ cart.count }}</p>
+
+{% if cart.count %}
+<div class="cart-table-wrapper">
+  <table class="cart-table">
+    <thead>
+      <tr>
+        <th>المنتج</th>
+        <th>الكمية</th>
+        <th>السعر الفردي</th>
+        <th>الإجمالي</th>
+        <th>حذف</th>
+        <th>أضف للمفضلة</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in cart %}
+      <tr>
+        <!-- صورة + اسم المنتج -->
+        <td class="product-cell">
+          {% if item.product.images.first %}
+          <a href="{% url 'shop:product_detail' item.product.id %}">
+            <img
+              src="{{ item.product.images.first.image.url }}"
+              alt="{{ item.product.name }}"
+              class="cart-img"
+            />
+          </a>
+          {% else %}
+          <div class="placeholder">لا توجد صورة</div>
+          {% endif %}
+          <span class="product-name">{{ item.product.name }}</span>
+          {% if item.size %}
+          <small class="text-muted"> (المقاس: {{ item.size }})</small>
+          {% endif %}
+        </td>
+
+        <!-- الكمية -->
+        <td>
+          <form
+            method="post"
+            action="{% url 'shop:update_cart' item.product.id %}"
+          >
+            {% csrf_token %}
+            <input type="hidden" name="size" value="{{ item.size }}" />
+            <div class="qty-control">
+              <button
+                type="submit"
+                name="action"
+                value="decrease"
+                class="qty-btn"
+              >
+                -
+              </button>
+              <span class="qty">{{ item.qty }}</span>
+              <button
+                type="submit"
+                name="action"
+                value="increase"
+                class="qty-btn"
+              >
+                +
+              </button>
+            </div>
+          </form>
+        </td>
+
+        <!-- السعر الفردي -->
+        <td>{{ item.price }} EGP</td>
+
+        <!-- الإجمالي الفرعي -->
+        <td>{{ item.subtotal }} EGP</td>
+
+        <!-- حذف -->
+        <td>
+          <a
+            href="{% url 'shop:remove_from_cart' item.product.id %}?size={{ item.size }}"
+            class="remove-btn"
+          >
+            <i class="fas fa-x"></i>
+          </a>
+        </td>
+
+        <!-- اضف للمفضلة -->
+        <td>
+          {% if item.product.id in wishlist_ids %}
+          <!-- ❤️ المنتج موجود في المفضلة -->
+          <a href="#" class="wishlist-btn" data-id="{{ item.product.id }}">
+            <i class="fas fa-heart text-red-500"></i>
+          </a>
+          {% else %}
+          <!-- 🤍 المنتج مش في المفضلة -->
+          <a href="#" class="wishlist-btn" data-id="{{ item.product.id }}">
+            <i class="far fa-heart text-gray-400"></i>
+          </a>
+          {% endif %}
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<div class="total">الإجمالي: <b>{{ cart.total }}</b> EGP</div>
+<a class="btn checkout-btn" href="{% url 'shop:checkout' %}">إكمال الطلب</a>
+
+{% else %}
+<p>سلتك فارغة.</p>
+{% endif %} {% endblock %}
